@@ -1,0 +1,120 @@
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib
+%matplotlib inline
+
+df=pd.read_csv('Titanic-Dataset.csv')
+df.head()
+df.isnull().sum()
+[features for features in df.columns if df[features].isnull().sum()>0]
+#percentage of missing values
+df.isnull().sum()/df.shape[0]*100
+  
+#num of duplicate vals
+df.duplicated().sum()
+df.drop_duplicates(inplace=True)
+sns.heatmap(df.isnull(), yticklabels=False, cbar=False, cmap='viridis')
+plt.show()
+  
+#identifying garbage vals
+for i in df.select_dtypes(include=['object']).columns:
+    print(df[i].value_counts())
+    print(" ")
+df.describe(include=['object']).T
+for i in df.select_dtypes(include=['number']).columns:
+    sns.histplot(data=df,x=i)
+    plt.show()
+for i in df.select_dtypes(include=['number']).columns:
+    sns.boxplot(data=df,x=i)
+    plt.show()
+df.select_dtypes(include=['number']).columns
+df.select_dtypes(include=['object']).columns
+df['Survived'].value_counts()
+sns.countplot(x='Survived', data=df)
+plt.show()
+sns.countplot(x='Sex', hue='Survived', data=df)
+plt.show()
+sns.countplot(x='Pclass', hue='Survived', data=df)
+plt.show()
+sns.histplot(df['Age'], bins=30, kde=True)
+plt.show()
+df.drop(['PassengerId', 'Name', 'Ticket', 'Cabin'], axis=1, inplace=True)
+df['Age'].fillna(df['Age'].median(), inplace=True)
+df['Embarked'].fillna(df['Embarked'].mode()[0], inplace=True)
+
+#dummy values
+df = pd.get_dummies(df, columns=['Sex', 'Embarked'], drop_first=True)
+df.isnull().sum()
+  
+from sklearn.preprocessing import StandardScaler
+scaler = StandardScaler()
+
+X = df.drop('Survived', axis=1)
+y = df['Survived']
+
+X_scaled = scaler.fit_transform(X)
+from sklearn.model_selection import train_test_split
+X_train, X_test, y_train, y_test = train_test_split(
+    X_scaled, y,
+    test_size=0.1,
+    random_state=42
+)
+
+#logistic regression
+from sklearn.linear_model import LogisticRegression
+model = LogisticRegression()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+accuracy_score(y_test, y_pred)
+confusion_matrix(y_test, y_pred)
+print(classification_report(y_test, y_pred))
+
+X = df.drop('Survived', axis=1)
+y = df['Survived']
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.1, random_state=42
+)
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+#support vector machine (svm)
+from sklearn.svm import SVC
+model = SVC(kernel='rbf')  # try 'linear', 'poly' also
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(confusion_matrix(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+#dnn
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+X = df.drop('Survived', axis=1)
+y = df['Survived']
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+model = Sequential()
+
+model.add(Dense(16, activation='relu', input_shape=(X_train.shape[1],)))
+model.add(Dense(8, activation='relu'))
+model.add(Dense(1, activation='sigmoid'))  # binary output
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+model.fit(X_train, y_train, epochs=20, batch_size=32)
+loss, accuracy = model.evaluate(X_test, y_test)
+print("Accuracy:", accuracy)
